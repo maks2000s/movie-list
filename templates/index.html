@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>🎬 Мой список фильмов</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #1c1c1c, #2a2a2a);
+      color: #fff;
+      overflow-x: hidden;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 15px;
+      color: #f9d342;
+      text-shadow: 0 0 8px #000;
+    }
+    .container {
+      display: flex;
+      justify-content: space-between;
+      padding: 30px;
+      gap: 30px;
+    }
+    .column {
+      flex: 1;
+      background: #2f2f2f;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      position: relative;
+      overflow-y: auto;
+      max-height: 85vh;
+    }
+    .column h2 {
+      text-align: center;
+      color: #f9d342;
+      margin-bottom: 15px;
+    }
+    input[name="title"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      margin-bottom: 15px;
+      outline: none;
+    }
+    .suggestions {
+      position: fixed;
+      background: #3a3a3a;
+      border-radius: 10px;
+      width: 40%;
+      max-height: 350px;
+      overflow-y: auto;
+      z-index: 9999;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      left: 30px;
+    }
+    .suggestions div {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .suggestions div:hover {
+      background: #505050;
+    }
+    .suggestions img {
+      width: 45px;
+      height: 65px;
+      border-radius: 6px;
+      margin-right: 10px;
+      object-fit: cover;
+    }
+    .movie {
+      display: flex;
+      align-items: center;
+      background: #3a3a3a;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      padding: 10px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+    .movie:hover { transform: scale(1.02); }
+    .movie img {
+      width: 80px;
+      height: 120px;
+      border-radius: 8px;
+      margin-right: 15px;
+      object-fit: cover;
+    }
+    .info h3 { margin: 0; color: #fff; }
+    .info .year { font-size: 14px; color: #ccc; }
+    .rating { font-weight: bold; color: #f9d342; margin-top: 5px; }
+    button {
+      background: #f9d342;
+      color: #1c1c1c;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+      margin-top: 5px;
+      margin-right: 6px;
+    }
+    button:hover { background: #ffd95e; }
+    .delete-btn { background: #e74c3c; color: #fff; }
+    .delete-btn:hover { background: #ff6b5b; }
+
+    /* уведомления */
+    #toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #e74c3c;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      display: none;
+      z-index: 10000;
+    }
+
+    /* модальное окно */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #2f2f2f;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    }
+    .modal-content h3 { color: #f9d342; }
+    .modal-content input {
+      width: 70px;
+      text-align: center;
+      padding: 6px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎥 Мои фильмы</h1>
+<div class="container">
+
+  <!-- Левая колонка -->
+  <div class="column">
+    <h2>🎯 Хочу посмотреть</h2>
+    <div>
+      <input name="title" id="movieInput" placeholder="Введите название фильма...">
+      <div id="suggestions" class="suggestions"></div>
+    </div>
+
+    <div id="toWatchList">
+      {% for m in movies["to_watch"] %}
+        <div class="movie">
+          {% if m.poster %}
+            <img src="{{ m.poster }}" alt="{{ m.title }}">
+          {% endif %}
+          <div class="info">
+            <h3>{{ m.title }}</h3>
+            <div class="year">{{ m.year }}</div>
+            <button onclick="openModal('{{ m.title }}')">Посмотрел</button>
+            <button class="delete-btn" onclick="removeMovie('{{ m.title }}')">Удалить</button>
+          </div>
+        </div>
+      {% else %}
+        <p>Добавь фильмы, которые хочешь посмотреть 🎞️</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Правая колонка -->
+  <div class="column">
+    <h2>✅ Просмотренные</h2>
+    {% for m in watched_sorted %}
+      <div class="movie">
+        {% if m.poster %}
+          <img src="{{ m.poster }}" alt="{{ m.title }}">
+        {% endif %}
+        <div class="info">
+          <h3>{{ m.title }}</h3>
+          <div class="year">{{ m.year }}</div>
+          <div class="rating">⭐ {{ "%.0f"|format(m.rating) }}/100</div>
+        </div>
+      </div>
+    {% else %}
+      <p>Ещё ничего не просмотрено 🎬</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- уведомление -->
+<div id="toast"></div>
+
+<!-- модал -->
+<div class="modal" id="ratingModal">
+  <div class="modal-content">
+    <h3 id="modalTitle">Поставьте оценку</h3>
+    <form id="ratingForm" method="POST">
+      <input type="number" name="rating" min="1" max="100" step="1" required>
+      <br>
+      <button type="submit">OK</button>
+      <button type="button" onclick="closeModal()">Отмена</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById("movieInput");
+  const suggestionsBox = document.getElementById("suggestions");
+  const toast = document.getElementById("toast");
+  let timer;
+
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (!q) { suggestionsBox.style.display = "none"; return; }
+
+    timer = setTimeout(() => {
+      fetch(`/suggest?query=${encodeURIComponent(q)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.length) { suggestionsBox.style.display = "none"; return; }
+          suggestionsBox.innerHTML = "";
+          data.forEach(m => {
+            const div = document.createElement("div");
+            div.innerHTML = `${m.poster ? `<img src="${m.poster}">` : ""}<span>${m.title} (${m.year})</span>`;
+            div.onclick = () => { addMovie(m); };
+            suggestionsBox.appendChild(div);
+          });
+          suggestionsBox.style.display = "block";
+        });
+    }, 300);
+  });
+
+  document.addEventListener("click", e => {
+    if (!suggestionsBox.contains(e.target) && e.target !== input)
+      suggestionsBox.style.display = "none";
+  });
+
+  function showToast(msg) {
+    toast.innerText = msg;
+    toast.style.display = "block";
+    setTimeout(() => toast.style.display = "none", 2500);
+  }
+
+  function addMovie(movie) {
+    fetch("/add_movie", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(movie)
+    }).then(res => res.json()).then(data => {
+      if (data.status === "ok") location.reload();
+      else showToast(data.message);
+    });
+  }
+
+  function removeMovie(title) {
+    fetch(`/remove_movie/${encodeURIComponent(title)}`, { method: "POST" })
+      .then(() => location.reload());
+  }
+
+  // ===== модальное окно =====
+  const modal = document.getElementById("ratingModal");
+  const modalTitle = document.getElementById("modalTitle");
+  const ratingForm = document.getElementById("ratingForm");
+
+  function openModal(title) {
+    modalTitle.textContent = `Оцените "${title}"`;
+    ratingForm.action = `/watch/${encodeURIComponent(title)}`;
+    modal.style.display = "flex";
+  }
+
+  function closeModal() { modal.style.display = "none"; }
+  window.onclick = (event) => { if (event.target === modal) closeModal(); };
+</script>
+
+</body>
+</html>
